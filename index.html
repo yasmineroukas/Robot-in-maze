@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robot Fille - Résolveur de Labyrinthe 🤖💖</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-light: linear-gradient(135deg, #ffeef8 0%, #f8e8ff 100%);
+            --bg-dark: linear-gradient(135deg, #2d1b3d 0%, #1a0f2e 100%);
+            --card-light: rgba(255, 255, 255, 0.9);
+            --card-dark: rgba(40, 25, 55, 0.9);
+            --text-light: #4a2c5a;
+            --text-dark: #e8d5f0;
+            --accent: #ff69b4;
+            --accent-dark: #e91e63;
+            --robot: #ff1493;
+            --goal: #32cd32;
+            --wall: #8b4592;
+            --path: #ffc0cb;
+            --explored: #dda0dd;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: var(--bg-light);
+            color: var(--text-light);
+            min-height: 100vh;
+            transition: all 0.3s ease;
+        }
+
+        body.dark {
+            background: var(--bg-dark);
+            color: var(--text-dark);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .title {
+            font-size: 2.5rem;
+            background: linear-gradient(45deg, #ff69b4, #ff1493, #e91e63);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(255, 105, 180, 0.3);
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.8;
+            margin-bottom: 20px;
+        }
+
+        .theme-toggle {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 105, 180, 0.3);
+        }
+
+        .theme-toggle:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 105, 180, 0.4);
+        }
+
+        .controls {
+            background: var(--card-light);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(255, 105, 180, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 105, 180, 0.2);
+        }
+
+        body.dark .controls {
+            background: var(--card-dark);
+            border: 1px solid rgba(255, 105, 180, 0.3);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #ff69b4, #ff1493);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 12px 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 105, 180, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(255, 105, 180, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .info-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .info-item {
+            background: rgba(255, 105, 180, 0.1);
+            padding: 15px;
+            border-radius: 15px;
+            text-align: center;
+            border: 1px solid rgba(255, 105, 180, 0.2);
+        }
+
+        .maze-container {
+            background: var(--card-light);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(255, 105, 180, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 105, 180, 0.2);
+            margin-bottom: 30px;
+        }
+
+        body.dark .maze-container {
+            background: var(--card-dark);
+            border: 1px solid rgba(255, 105, 180, 0.3);
+        }
+
+        .maze {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 3px;
+            max-width: 500px;
+            margin: 0 auto;
+            background: rgba(139, 69, 146, 0.2);
+            padding: 20px;
+            border-radius: 15px;
+        }
+
+        .cell {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+            position: relative;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .cell:hover {
+            transform: scale(1.05);
+        }
+
+        .wall {
+            background: linear-gradient(45deg, #8b4592, #6a3575);
+            color: white;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .path {
+            background: linear-gradient(45deg, #ffc0cb, #ffb6c1);
+            color: #8b4592;
+            box-shadow: 0 2px 8px rgba(255, 192, 203, 0.4);
+        }
+
+        .robot {
+            background: linear-gradient(45deg, #ff1493, #ff69b4) !important;
+            color: white;
+            animation: pulse 2s infinite;
+            box-shadow: 0 0 15px rgba(255, 20, 147, 0.6);
+        }
+
+        .goal {
+            background: linear-gradient(45deg, #32cd32, #98fb98) !important;
+            color: white;
+            animation: glow 2s infinite alternate;
+            box-shadow: 0 0 15px rgba(50, 205, 50, 0.6);
+        }
+
+        .explored {
+            background: linear-gradient(45deg, #dda0dd, #da70d6) !important;
+            color: white;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .solution-path {
+            background: linear-gradient(45deg, #ffd700, #ffeb3b) !important;
+            color: #8b4592;
+            animation: shimmer 1s infinite;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        @keyframes glow {
+            0% { box-shadow: 0 0 15px rgba(50, 205, 50, 0.6); }
+            100% { box-shadow: 0 0 25px rgba(50, 205, 50, 0.9); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes shimmer {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 15px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        body.dark .legend-item {
+            background: rgba(40, 25, 55, 0.7);
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+        }
+
+        .status {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            min-height: 25px;
+        }
+
+        .success {
+            color: var(--goal);
+            animation: celebrate 0.5s ease;
+        }
+
+        @keyframes celebrate {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .algorithm-info {
+            background: var(--card-light);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+            border: 1px solid rgba(255, 105, 180, 0.2);
+        }
+
+        body.dark .algorithm-info {
+            background: var(--card-dark);
+            border: 1px solid rgba(255, 105, 180, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .maze {
+                grid-template-columns: repeat(5, 1fr);
+                max-width: 350px;
+            }
+            
+            .cell {
+                width: 50px;
+                height: 50px;
+                font-size: 14px;
+            }
+            
+            .title {
+                font-size: 2rem;
+            }
+            
+            .theme-toggle {
+                position: relative;
+                margin: 10px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <button class="theme-toggle" onclick="toggleTheme()">🌙 Mode Sombre</button>
+            <h1 class="title">Robot Fille dans le Labyrinthe 🤖💖</h1>
+            <p class="subtitle">Aide notre petite robot à trouver la sortie !</p>
+        </div>
+
+        <div class="controls">
+            <div class="button-group">
+                <button class="btn" onclick="solveBFS()">🔍 BFS (Largeur)</button>
+                <button class="btn" onclick="solveDFS()">📍 DFS (Profondeur)</button>
+                <button class="btn" onclick="solveAStar()">⭐ A* (Optimal)</button>
+                <button class="btn" onclick="resetMaze()">🔄 Réinitialiser</button>
+            </div>
+            
+            <div class="info-panel">
+                <div class="info-item">
+                    <div>👣 Nœuds Explorés</div>
+                    <div id="exploredCount">0</div>
+                </div>
+                <div class="info-item">
+                    <div>🛤️ Longueur du Chemin</div>
+                    <div id="pathLength">0</div>
+                </div>
+                <div class="info-item">
+                    <div>⚡ Algorithme</div>
+                    <div id="currentAlgorithm">Aucun</div>
+                </div>
+                <div class="info-item">
+                    <div>⏱️ Temps</div>
+                    <div id="executionTime">0ms</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="maze-container">
+            <div class="maze" id="maze"></div>
+            <div class="status" id="status">Sélectionne un algorithme pour commencer ! 💕</div>
+            
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color robot"></div>
+                    <span>Robot Fille 🤖</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color goal"></div>
+                    <span>Sortie 🚪</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color wall"></div>
+                    <span>Mur 🧱</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color explored"></div>
+                    <span>Exploré 👁️</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color solution-path"></div>
+                    <span>Chemin Solution ✨</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="algorithm-info" id="algorithmInfo">
+            <h3>💡 À propos des algorithmes :</h3>
+            <p><strong>BFS (Largeur d'abord) :</strong> Explore niveau par niveau, garantit le chemin le plus court en nombre de pas.</p>
+            <p><strong>DFS (Profondeur d'abord) :</strong> Explore en profondeur, peut trouver une solution rapidement mais pas forcément optimale.</p>
+            <p><strong>A* :</strong> Utilise une heuristique pour guider la recherche vers l'objectif, très efficace !</p>
+        </div>
+    </div>
+
+    <script>
+        // Configuration du labyrinthe selon le TD
+        const mazeLayout = [
+            [8, 9, 'W', 11, 'W'],
+            [10, 'W', 12, 13, 'W'],
+            [6, 5, 7, 14, 17],
+            [3, 2, 4, 'W', 'W'],
+            ['A', 1, 15, 16, 'B']
+        ];
+
+        // Heuristique selon le TD
+        const heuristic = {
+            'A': 8, 1: 6, 2: 6, 3: 6, 4: 7, 5: 4, 6: 12, 7: 7, 8: 15, 9: 18,
+            10: 6, 11: 8, 12: 6, 13: 5, 14: 4, 15: 8, 16: 6, 17: 3, 'B': 0
+        };
+
+        // Positions dans la grille
+        const positions = {};
+        for (let row = 0; row < 5; row++) {
+            for (let col = 0; col < 5; col++) {
+                const cell = mazeLayout[row][col];
+                if (cell !== 'W') {
+                    positions[cell] = [row, col];
+                }
+            }
+        }
+
+        let currentSolution = null;
+        let isAnimating = false;
+
+        function initializeMaze() {
+            const mazeElement = document.getElementById('maze');
+            mazeElement.innerHTML = '';
+            
+            for (let row = 0; row < 5; row++) {
+                for (let col = 0; col < 5; col++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.id = `cell-${row}-${col}`;
+                    
+                    const value = mazeLayout[row][col];
+                    if (value === 'W') {
+                        cell.classList.add('wall');
+                        cell.textContent = '🧱';
+                    } else {
+                        cell.classList.add('path');
+                        if (value === 'A') {
+                            cell.classList.add('robot');
+                            cell.textContent = '🤖';
+                        } else if (value === 'B') {
+                            cell.classList.add('goal');
+                            cell.textContent = '🚪';
+                        } else {
+                            cell.textContent = value;
+                        }
+                    }
+                    
+                    mazeElement.appendChild(cell);
+                }
+            }
+        }
+
+        function resetMaze() {
+            if (isAnimating) return;
+            
+            const cells = document.querySelectorAll('.cell');
+            cells.forEach(cell => {
+                cell.classList.remove('explored', 'solution-path');
+                const [row, col] = cell.id.split('-').slice(1).map(Number);
+                const value = mazeLayout[row][col];
+                
+                if (value !== 'W') {
+                    cell.className = 'cell path';
+                    if (value === 'A') {
+                        cell.classList.add('robot');
+                        cell.textContent = '🤖';
+                    } else if (value === 'B') {
+                        cell.classList.add('goal');
+                        cell.textContent = '🚪';
+                    } else {
+                        cell.textContent = value;
+                    }
+                }
+            });
+            
+            updateStatus('Labyrinthe réinitialisé ! Prête pour une nouvelle aventure ! 💕');
+            updateStats(0, 0, 'Aucun', 0);
+            currentSolution = null;
+        }
+
+        function getNeighbors(node) {
+            const [row, col] = positions[node];
+            const neighbors = [];
+            const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]]; // haut, bas, gauche, droite
+            
+            for (const [dr, dc] of directions) {
+                const newRow = row + dr;
+                const newCol = col + dc;
+                
+                if (newRow >= 0 && newRow < 5 && newCol >= 0 && newCol < 5) {
+                    const neighbor = mazeLayout[newRow][newCol];
+                    if (neighbor !== 'W') {
+                        neighbors.push(neighbor);
+                    }
+                }
+            }
+            
+            return neighbors;
+        }
+
+        async function solveBFS() {
+            if (isAnimating) return;
+            
+            const startTime = performance.now();
+            isAnimating = true;
+            resetMaze();
+            updateStatus('BFS en cours... Exploration niveau par niveau ! 🔍');
+            updateStats(0, 0, 'BFS', 0);
+            
+            const queue = [['A']];
+            const visited = new Set(['A']);
+            const explored = [];
+            
+            while (queue.length > 0) {
+                const path = queue.shift();
+                const current = path[path.length - 1];
+                explored.push(current);
+                
+                if (current !== 'A') {
+                    await highlightCell(current, 'explored');
+                    await sleep(300);
+                }
+                
+                if (current === 'B') {
+                    await animateSolution(path);
+                    const endTime = performance.now();
+                    updateStats(explored.length, path.length, 'BFS', Math.round(endTime - startTime));
+                    updateStatus('🎉 Chemin trouvé avec BFS ! Notre robot fille a réussi ! 💖');
+                    isAnimating = false;
+                    return;
+                }
+                
+                for (const neighbor of getNeighbors(current)) {
+                    if (!visited.has(neighbor)) {
+                        visited.add(neighbor);
+                        queue.push([...path, neighbor]);
+                    }
+                }
+            }
+            
+            const endTime = performance.now();
+            updateStats(explored.length, 0, 'BFS', Math.round(endTime - startTime));
+            updateStatus('😔 Aucun chemin trouvé avec BFS');
+            isAnimating = false;
+        }
+
+        async function solveDFS() {
+            if (isAnimating) return;
+            
+            const startTime = performance.now();
+            isAnimating = true;
+            resetMaze();
+            updateStatus('DFS en cours... Exploration en profondeur ! 📍');
+            updateStats(0, 0, 'DFS', 0);
+            
+            const stack = [['A']];
+            const visited = new Set();
+            const explored = [];
+            
+            while (stack.length > 0) {
+                const path = stack.pop();
+                const current = path[path.length - 1];
+                
+                if (visited.has(current)) continue;
+                visited.add(current);
+                explored.push(current);
+                
+                if (current !== 'A') {
+                    await highlightCell(current, 'explored');
+                    await sleep(300);
+                }
+                
+                if (current === 'B') {
+                    await animateSolution(path);
+                    const endTime = performance.now();
+                    updateStats(explored.length, path.length, 'DFS', Math.round(endTime - startTime));
+                    updateStatus('🎉 Chemin trouvé avec DFS ! Notre robot fille a réussi ! 💖');
+                    isAnimating = false;
+                    return;
+                }
+                
+                const neighbors = getNeighbors(current);
+                for (let i = neighbors.length - 1; i >= 0; i--) {
+                    const neighbor = neighbors[i];
+                    if (!visited.has(neighbor)) {
+                        stack.push([...path, neighbor]);
+                    }
+                }
+            }
+            
+            const endTime = performance.now();
+            updateStats(explored.length, 0, 'DFS', Math.round(endTime - startTime));
+            updateStatus('😔 Aucun chemin trouvé avec DFS');
+            isAnimating = false;
+        }
+
+        async function solveAStar() {
+            if (isAnimating) return;
+            
+            const startTime = performance.now();
+            isAnimating = true;
+            resetMaze();
+            updateStatus('A* en cours... Recherche optimale ! ⭐');
+            updateStats(0, 0, 'A*', 0);
+            
+            const openSet = [{node: 'A', path: ['A'], g: 0, f: heuristic['A']}];
+            const closedSet = new Set();
+            const explored = [];
+            
+            while (openSet.length > 0) {
+                // Trouver le nœud avec le plus petit f
+                openSet.sort((a, b) => a.f - b.f);
+                const current = openSet.shift();
+                
+                if (closedSet.has(current.node)) continue;
+                closedSet.add(current.node);
+                explored.push(current.node);
+                
+                if (current.node !== 'A') {
+                    await highlightCell(current.node, 'explored');
+                    await sleep(300);
+                }
+                
+                if (current.node === 'B') {
+                    await animateSolution(current.path);
+                    const endTime = performance.now();
+                    updateStats(explored.length, current.path.length, 'A*', Math.round(endTime - startTime));
+                    updateStatus('🎉 Chemin optimal trouvé avec A* ! Notre robot fille a réussi ! ⭐💖');
+                    isAnimating = false;
+                    return;
+                }
+                
+                for (const neighbor of getNeighbors(current.node)) {
+                    if (closedSet.has(neighbor)) continue;
+                    
+                    const g = current.g + 1;
+                    const h = heuristic[neighbor] || 0;
+                    const f = g + h;
+                    
+                    openSet.push({
+                        node: neighbor,
+                        path: [...current.path, neighbor],
+                        g: g,
+                        f: f
+                    });
+                }
+            }
+            
+            const endTime = performance.now();
+            updateStats(explored.length, 0, 'A*', Math.round(endTime - startTime));
+            updateStatus('😔 Aucun chemin trouvé avec A*');
+            isAnimating = false;
+        }
+
+        async function highlightCell(node, className) {
+            if (node === 'A' || node === 'B') return;
+            
+            const [row, col] = positions[node];
+            const cell = document.getElementById(`cell-${row}-${col}`);
+            cell.classList.add(className);
+        }
+
+        async function animateSolution(path) {
+            updateStatus('✨ Animation du chemin solution...');
+            
+            for (let i = 1; i < path.length - 1; i++) {
+                const node = path[i];
+                const [row, col] = positions[node];
+                const cell = document.getElementById(`cell-${row}-${col}`);
+                cell.classList.remove('explored');
+                cell.classList.add('solution-path');
+                await sleep(200);
+            }
+        }
+
+        function updateStatus(message) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            if (message.includes('🎉')) {
+                status.classList.add('success');
+                setTimeout(() => status.classList.remove('success'), 1000);
+            }
+        }
+
+        function updateStats(explored, pathLength, algorithm, time) {
+            document.getElementById('exploredCount').textContent = explored;
+            document.getElementById('pathLength').textContent = pathLength;
+            document.getElementById('currentAlgorithm').textContent = algorithm;
+            document.getElementById('executionTime').textContent = time + 'ms';
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function toggleTheme() {
+            const body = document.body;
+            const button = document.querySelector('.theme-toggle');
+            
+            body.classList.toggle('dark');
+            
+            if (body.classList.contains('dark')) {
+                button.textContent = '☀️ Mode Clair';
+            } else {
+                button.textContent = '🌙 Mode Sombre';
+            }
+        }
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeMaze();
+            updateStatus('Bienvenue ! Sélectionne un algorithme pour aider notre robot fille ! 💕');
+        });
+    </script>
+</body>
+</html>
